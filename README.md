@@ -5,16 +5,35 @@
 
 An attempt tu create a lightweight and reactive microkernel in Rust.
 
-## build
+## Target
 
-Add the target with rustup:
+Here we are using a stm32wb55 which is using a cortex-m4 as main processor and a cortex-m0 as co-processor.
+
+## Build
+
+The cortex-m7 includes the armv7-m instruction set without a hardware floating point unit. So we need to add the corresponding toolchain to our project :
+
 ```shell
-rustup target add thumbv6m-none-eabi
+rustup target add thumbv7em-none-eabi
 ```
 
-Build the project:
+And we can build the project:
 ```shell
-cargo build --target thumbv6n-none-eabi
+cargo build --target thumbv7em-none-eabi
+```
+
+We can also add this configuration in a **./cargo/config.toml** file:
+```toml
+target = "thumbv7em-none-eabi" # Cortex-M4F and Cortex-M7F (with FPU)
+```
+
+we also need to set the linker configuration for this target:
+```toml
+[target.thumbv7em-none-eabi]
+rustflags = [
+  "-C", 
+  "link-arg=-Tlink.x",
+]
 ```
 
 ## Debug
@@ -22,12 +41,30 @@ cargo build --target thumbv6n-none-eabi
 To launch a debug session, first start OpenOCD server:
 
 ```shell
-openocd -s share\openocd\scripts -f share\openocd\scripts\interface\stlink-v2-1.cfg -f share\openocd\scripts\target\stm32f0x.cfg
+openocd -s /usr/share/openocd/scripts -f /usr/share/openocd/scripts/interface/stlink-v2-1.cfg -f /usr/share/openocd/scripts/target/stm32wbx.cfg
 ```
-Here we use a stlink debugger and a stm32f0 microcontroller.
 
 Then connect to the server with a gdb client:
 
 ```shell
-arm-none-eabi-gdb -q -ex "target remote :3333" .\target\thumbv6m-none-eabi\debug\swordfish
+gdb-multiarch -q target/thumbv7em-none-eabi/debug/swordfish
 ```
+
+In gdb, type:
+
+```shell
+(gdb) target remote :3333
+```
+
+> Remote debugging using :3333
+> 0x0800124e in ?? ()
+
+```shell
+(gdb) load
+```
+
+> Loading section .vector_table, size 0x400 lma 0x8000000
+> Loading section .text, size 0x324 lma 0x8000400
+> Loading section .rodata, size 0x228 lma 0x8000724
+> Start address 0x08000400, load size 2380
+> Transfer rate: 8 KB/sec, 793 bytes/write.
